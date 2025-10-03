@@ -27,17 +27,33 @@ uniform vec3 u_secondaryColor;
 void main() {
   vec2 uv = v_texcoord;
 
-  // Wave effect on edges
-  float wave = sin(uv.x * u_waveFrequency + u_time * u_waveSpeed) * u_waveAmplitude;
-  float topEdge = smoothstep(0.95 + wave, 1.0 + wave, uv.y);
-  float bottomEdge = smoothstep(0.95 - wave, 1.0 - wave, 1.0 - uv.y);
+  // Calculate pixel size for sharper edges
+  vec2 pixelSize = 1.0 / u_resolution;
+  float edgeSharpness = 2.0;
 
+  // Create border thickness
+  float borderThickness = 0.05;
+
+  // Wave effect on edges
+  float topWave = sin(uv.x * u_waveFrequency + u_time * u_waveSpeed) * u_waveAmplitude;
+  float bottomWave = sin(uv.x * u_waveFrequency + u_time * u_waveSpeed) * u_waveAmplitude;
   float leftWave = sin(uv.y * u_waveFrequency + u_time * u_waveSpeed) * u_waveAmplitude;
-  float leftEdge = smoothstep(0.95 + leftWave, 1.0 + leftWave, 1.0 - uv.x);
-  float rightEdge = smoothstep(0.95 - leftWave, 1.0 - leftWave, uv.x);
+  float rightWave = sin(uv.y * u_waveFrequency + u_time * u_waveSpeed) * u_waveAmplitude;
+
+  // Calculate distance from edges with wave offset
+  float topDist = (1.0 - borderThickness + topWave) - uv.y;
+  float bottomDist = uv.y - (borderThickness + bottomWave);
+  float leftDist = uv.x - (borderThickness + leftWave);
+  float rightDist = (1.0 - borderThickness + rightWave) - uv.x;
+
+  // Create sharp edges
+  float topEdge = smoothstep(0.0, pixelSize.y * edgeSharpness, topDist);
+  float bottomEdge = smoothstep(0.0, pixelSize.y * edgeSharpness, bottomDist);
+  float leftEdge = smoothstep(0.0, pixelSize.x * edgeSharpness, leftDist);
+  float rightEdge = smoothstep(0.0, pixelSize.x * edgeSharpness, rightDist);
 
   // Combine edge effects
-  float edgeMask = 1.0 - max(max(topEdge, bottomEdge), max(leftEdge, rightEdge));
+  float edgeMask = min(min(topEdge, bottomEdge), min(leftEdge, rightEdge));
 
   // Create gradient with wave distortion
   float waveOffset = sin(uv.y * u_waveFrequency * 2.0 + u_time * u_waveSpeed * 0.5) * 0.1;
